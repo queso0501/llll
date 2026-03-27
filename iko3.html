@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>Guía de Estudio 🩵</title>
+
+<style>
+/* 🔹 TODO lo normal (inicio, progreso, etc.) */
+.card {
+    text-align: center;
+}
+
+/* 🔹 SOLO para la explicación */
+.tema {
+    text-align: left;
+    line-height: 1.6;
+}
+
+/* títulos del tema centrados */
+.tema h2 {
+    text-align: center;
+}
+
+/* contenido del tema a la izquierda */
+.tema p,
+.tema ul,
+.tema h3,
+.tema div {
+    text-align: left;
+}
+
+/* imagen centrada */
+.tema img {
+    display: block;
+    margin: 15px auto;
+    max-width: 300px;
+    border-radius: 12px;
+}
+
+/* botones centrados */
+.tema button {
+    display: block;
+    margin: 15px auto;
+}
+.tema {
+    max-width: 700px;
+    margin: auto;
+    padding: 20px;
+    line-height: 1.6;
+}
+
+.tema p {
+    text-align: justify;
+}
+body {
+    font-family: 'Segoe UI';
+    background: linear-gradient(135deg,#fce4ec,#e3f2fd);
+    text-align:center;
+}
+
+.card {
+    background:white;
+    margin:20px auto;
+    padding:20px;
+    border-radius:20px;
+    width:85%;
+    box-shadow:0 5px 15px rgba(0,0,0,0.2);
+}
+
+button {
+    margin:6px;
+    padding:10px 15px;
+    border:none;
+    border-radius:15px;
+    background:black;
+    color:white;
+    cursor:pointer;
+}
+
+.done { background:green; }
+.back { background:#ff4081; }
+
+.progress-bar {
+    width:80%;
+    height:20px;
+    background:#ddd;
+    margin:15px auto;
+    border-radius:10px;
+}
+
+.progress {
+    height:100%;
+    background:green;
+    border-radius:10px;
+    transition: width 0.5s ease;
+}
+
+.verde { background:#c8e6c9; }
+.amarillo { background:#fff9c4; }
+.rojo { background:#ffcdd2; }
+</style>
+</head>
+
+<body>
+
+<h1> Guía </h1>
+<h2> para iko 🩵</h1>
+
+<div id="contador"></div>
+<div id="contenido"></div>
+
+<!-- IMPORTANTE -->
+<script src="datos.js"></script>
+
+<script>
+const c = document.getElementById("contenido");
+
+// ===== CONTADOR =====
+function actualizarContador(){
+let examen = new Date("2026-05-30");
+let hoy = new Date();
+
+hoy.setHours(0,0,0,0);
+examen.setHours(0,0,0,0);
+
+let diff = examen - hoy;
+let dias = Math.max(0, Math.ceil(diff / (1000*60*60*24)));
+
+let colorClase = "verde";
+if(dias <= 30) colorClase = "amarillo";
+if(dias <= 10) colorClase = "rojo";
+
+document.getElementById("contador").innerHTML = `
+<div class="card ${colorClase}">
+<h2>⏳ ${dias > 0 ? `Faltan ${dias} días` : " Hoy es tu examen"}</h2>
+</div>`;
+}
+
+// ===== DÍAS FIJOS (62) =====
+const materias = {
+matematicas:21,
+fisica:13,
+Biología:13,
+comprension:6,
+lengua:8
+};
+
+const nombres = {
+matematicas:"Matemáticas",
+fisica:"Física",
+Biología:"Biología",
+comprension:"Comprensión lectora",
+lengua:"Lengua"
+};
+
+// ===== PROGRESO =====
+let progreso = JSON.parse(localStorage.getItem("progreso")) || {};
+
+function guardar(){
+localStorage.setItem("progreso", JSON.stringify(progreso));
+}
+
+function resetear(){
+localStorage.removeItem("progreso");
+progreso = {};
+inicio();
+}
+
+// ===== INICIO =====
+function inicio(){
+let total = Object.values(materias).reduce((a,b)=>a+b,0);
+let completados=Object.keys(progreso).length;
+let porcentaje=(completados/total)*100;
+
+let botones="";
+for(let m in materias){
+botones+=`<button onclick="verMateria('${m}')">${nombres[m]}</button>`;
+}
+
+c.innerHTML=`
+<div class="card">
+<h2>Progreso</h2>
+
+<div class="progress-bar">
+<div class="progress" style="width:${porcentaje}%"></div>
+</div>
+
+<p>${completados}/${total} días</p>
+
+${botones}
+
+<br><button onclick="resetear()"> Reiniciar progreso</button>
+</div>`;
+}
+
+// ===== OBTENER TEMA =====
+function obtenerTema(m,d){
+let tema = planes[m][d-1];
+
+if(!tema){
+return {
+tema:"Tema pendiente",
+exp:"Aún no agregas contenido para este día.",
+ejemplo:"Puedes completarlo después."
+};
+}
+
+return tema;
+}
+
+// ===== MATERIA =====
+function verMateria(m){
+let botones="";
+
+for(let i=1;i<=materias[m];i++){
+let key=m+"-"+i;
+let estado=progreso[key]?"done":"";
+
+botones+=`<button class="${estado}" onclick="verDia('${m}',${i})">
+Día ${i} ${progreso[key]?"✅":""}
+</button>`;
+}
+
+c.innerHTML=`
+<div class="card">
+<h2>${nombres[m]}</h2>
+${botones}
+<button class="back" onclick="inicio()">Volver</button>
+</div>`;
+}
+
+// ===== DÍA =====
+function verDia(m,d){
+let data=obtenerTema(m,d);
+
+c.innerHTML=`
+<div class="card">
+<h2>${nombres[m]} - Día ${d}</h2>
+<p>${data.tema}</p>
+
+<button onclick='verTema(${JSON.stringify(data)}, "${m}", ${d})'> Ver explicación</button>
+
+<br>
+<button class="done" onclick="completar('${m}-${d}')">Completar</button>
+<button class="back" onclick="verMateria('${m}')">Volver</button>
+</div>`;
+}
+
+// ===== TEMA =====
+function verTema(data,m,d){
+c.innerHTML=`
+<div class="card tema">
+
+<h2>${data.tema}</h2>
+
+${data.img ? `<img src="${data.img}" style="width:400px; margin:10px; border-radius:10px;">` : ""}
+
+${data.exp ? `
+<div>
+<b> Explicación:</b><br>
+${data.exp}
+</div>
+` : ""}
+
+${data.exp2 ? `
+<div>
+<b> Extra:</b><br>
+${data.exp2.replace(/\n/g, "<br>")}
+</div>
+` : ""}
+
+${data.exp3 ? `
+<div>
+<b> Propiedades:</b><br>
+${data.exp3}
+</div>
+` : ""}
+
+<button class="back" onclick="verDia('${m}',${d})">Volver</button>
+
+</div>`;
+}
+
+// ===== COMPLETAR =====
+function completar(k){
+if(!progreso[k]){
+progreso[k]=true;
+guardar();
+}
+inicio();
+}
+
+// START
+actualizarContador();
+inicio();
+</script>
+
+</body>
+</html>
